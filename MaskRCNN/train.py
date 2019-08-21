@@ -291,7 +291,7 @@ if __name__ == '__main__':
             else:
                 session_init = get_model_loader(cfg.BACKBONE.WEIGHTS) if cfg.BACKBONE.WEIGHTS else None
 
-
+        session_config = tf.ConfigProto(log_device_placement=True)
         traincfg = TrainConfig(
             model=MODEL,
             data=QueueInput(train_dataflow),
@@ -305,7 +305,7 @@ if __name__ == '__main__':
             steps_per_epoch=steps_per_epoch,
             max_epoch=max_epoch,
             session_init=session_init,
-            session_config=None,
+            session_config=session_config,
             starting_epoch=cfg.TRAIN.STARTING_EPOCH
         )
 
