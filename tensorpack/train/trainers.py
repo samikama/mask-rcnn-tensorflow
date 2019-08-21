@@ -397,12 +397,13 @@ class HorovodTrainer(SingleCostTrainer):
         from tensorflow.python.ops import nccl_ops
         if hvd.size() == 1:
             return grads
-        scaled_grads = [g for g, _ in grads]
-        summed_grads = nccl_ops.all_sum(scaled_grads)
-        # copied from https://github.com/uber/horovod/blob/master/horovod/tensorflow/__init__.py
-        averaged_gradients = []
-        for (_, v), g in zip(grads, summed_grads):
-            averaged_gradients.append([g, v])
+        with tf.device('/gpu:0'):
+            scaled_grads = [g for g, _ in grads]
+            summed_grads = nccl_ops.all_sum(scaled_grads)
+            # copied from https://github.com/uber/horovod/blob/master/horovod/tensorflow/__init__.py
+            averaged_gradients = []
+            for (_, v), g in zip(grads, summed_grads):
+                averaged_gradients.append([g, v])
         '''
         with tf.name_scope("HVDAllReduce"):
             for grad, var in grads:
