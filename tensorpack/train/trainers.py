@@ -398,6 +398,9 @@ class HorovodTrainer(SingleCostTrainer):
         if hvd.size() == 1:
             return grads
         with tf.device('/gpu:0'):
+            for g, _ in grads:
+                print("device is ".format(g.device))
+
             scaled_grads = [g for g, _ in grads]
             summed_grads = nccl_ops.all_sum(scaled_grads)
             # copied from https://github.com/uber/horovod/blob/master/horovod/tensorflow/__init__.py
