@@ -101,7 +101,7 @@ class DetectionModel(ModelDesc):
 
         seed_gen = SeedGenerator(cfg.TRAIN.SEED)
         import horovod.tensorflow as hvd
-        with tf.device(f"/gpu:{hvd.local_rank()}"):
+        with tf.device(f"/device:GPU:{hvd.local_rank()}"):
             features = self.backbone(image, seed_gen)
 
             anchor_inputs = {k: v for k, v in inputs.items() if k.startswith('anchor_')}
