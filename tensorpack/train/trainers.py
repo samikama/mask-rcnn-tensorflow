@@ -397,6 +397,14 @@ class HorovodTrainer(SingleCostTrainer):
         from tensorflow.python.ops import nccl_ops
         if hvd.size() == 1:
             return grads
+        def get_available_devices():
+            from tensorflow.python.client import device_lib
+            local_device_protos = device_lib.list_local_devices()
+            print(len(local_device_protos))
+            return [x.name for x in local_device_protos]
+        print(get_available_devices())
+        import time
+        time.sleep(360)
         with tf.device('/gpu:0'):
             scaled_grads = [g for g, _ in grads]
             summed_grads = nccl_ops.all_sum(scaled_grads)
@@ -462,14 +470,6 @@ class HorovodTrainer(SingleCostTrainer):
         else:
             logger.info("Rank {} waiting for initialization broadcasting ...".format(self._rank))
         self.sess.run(self._broadcast_op)
-        def get_available_devices():
-            from tensorflow.python.client import device_lib
-            local_device_protos = device_lib.list_local_devices()
-            print(len(local_device_protos))
-            return [x.name for x in local_device_protos]
-        print(get_available_devices())
-        import time
-        time.sleep(360)
 
 
 # for lazy import
