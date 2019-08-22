@@ -465,6 +465,7 @@ class HorovodTrainer(SingleCostTrainer):
         def get_available_devices():
             from tensorflow.python.client import device_lib
             local_device_protos = device_lib.list_local_devices()
+            print(len(local_device_protos))
             return [x.name for x in local_device_protos]
         print(get_available_devices())
         import time
