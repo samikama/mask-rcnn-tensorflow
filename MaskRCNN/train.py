@@ -15,6 +15,7 @@ import tensorflow as tf
 import tqdm
 import time
 import subprocess
+import sys,signal
 
 import tensorpack.utils.viz as tpviz
 from tensorpack import *
@@ -30,6 +31,9 @@ from performance import ThroughputTracker, humanize_float
 from model.generalized_rcnn import ResNetFPNModel
 from tensorpack.utils import fix_rng_seed
 
+def handleExit(signum,frame):
+    print("Got signal to exit")
+    sys.exit()
 
 try:
     import horovod.tensorflow as hvd
@@ -132,6 +136,7 @@ def log_launch_config(log_full_git_diff):
 
 
 if __name__ == '__main__':
+    signal.signal(signal.SIGUSR1,handleExit)
     start_time = time.time()
     parser = argparse.ArgumentParser()
     parser.add_argument('--load', help='load a model for evaluation or training. Can overwrite BACKBONE.WEIGHTS')
