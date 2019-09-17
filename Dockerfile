@@ -20,6 +20,6 @@ RUN pip uninstall -y numpy && \
 RUN pip install --ignore-installed numpy==1.16.2
 ARG BRANCH_NAME
 RUN git clone https://github.com/aws-samples/mask-rcnn-tensorflow.git -b $BRANCH_NAME
-COPY Patch.patch NVIDIA_Nsight_Systems_Linux_2019.5.1.58.deb   /mask-rcnn-tensorflow/
+COPY Patch.patch /mask-rcnn-tensorflow/
 RUN chmod -R +w /mask-rcnn-tensorflow; cd /mask-rcnn-tensorflow ; git apply <Patch.patch
 RUN pip install --ignore-installed -e /mask-rcnn-tensorflow/

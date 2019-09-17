@@ -1,0 +1,97 @@
+diff --git a/Dockerfile b/Dockerfile
+index 441c669..69b650f 100644
+--- a/Dockerfile
++++ b/Dockerfile
+@@ -1,42 +1,24 @@
+-# DockerHub unaltered mirror of AWS Deep Learning Container
+-FROM armandmcqueen/tensorflow-training:1.13-horovod-gpu-py36-cu100-ubuntu16.04
+-
+-RUN apt-get install less
+-
+-# Need to reinstall some libraries the DL container provides due to custom Tensorflow binary
+-RUN pip uninstall -y tensorflow tensorboard tensorflow-estimator keras h5py horovod numpy
+-
+-# Download and install custom Tensorflow binary
+-RUN wget https://github.com/aws-samples/mask-rcnn-tensorflow/releases/download/v0.0.0/tensorflow-1.13.0-cp36-cp36m-linux_x86_64.whl && \
+-    pip install tensorflow-1.13.0-cp36-cp36m-linux_x86_64.whl && \
+-    pip install tensorflow-estimator==1.13.0 && \
+-    rm tensorflow-1.13.0-cp36-cp36m-linux_x86_64.whl
+-
+-RUN pip install keras h5py
+-
+-# Install Horovod, temporarily using CUDA stubs
+-RUN ldconfig /usr/local/cuda-10.0/targets/x86_64-linux/lib/stubs && \
+-    HOROVOD_GPU_ALLREDUCE=NCCL HOROVOD_WITH_TENSORFLOW=1  pip install --no-cache-dir horovod==0.15.2 && \
+-    ldconfig
+-
+-
+-# Install OpenSSH for MPI to communicate between containers
+-RUN mkdir -p /root/.ssh/ && \
+-  ssh-keygen -q -t rsa -N '' -f /root/.ssh/id_rsa && \
+-  cp /root/.ssh/id_rsa.pub /root/.ssh/authorized_keys && \
+-  printf "Host *\n  StrictHostKeyChecking no\n" >> /root/.ssh/config
+-
+-
+-RUN pip install Cython
+-RUN pip install ujson opencv-python pycocotools matplotlib
++FROM nvcr.io/nvidia/tensorflow:19.08-py3
++WORKDIR /opt/tensorflow
++RUN cd tensorflow-source && \
++    wget https://github.com/aws-samples/mask-rcnn-tensorflow/releases/download/v0.0.0/NMSFix.co.patch && \
++    patch -p1 < NMSFix.co.patch && \
++    cd ..
++RUN ./nvbuild.sh --python3.6
++RUN apt-get update && \
++    apt-get install -y libsm6 libxext6 libxrender-dev emacs-nox && \
++    pip install opencv-python
++RUN pip uninstall -y numpy && \
++    pip uninstall -y numpy
++RUN pip install --ignore-installed numpy==1.16.2
++WORKDIR /
++RUN apt-get update && \
++    apt-get install -y libsm6 libxext6 libxrender-dev && \
++    pip install opencv-python
++RUN pip uninstall -y numpy && \
++    pip uninstall -y numpy
+ RUN pip install --ignore-installed numpy==1.16.2
+-
+-
+-# TODO: Do I really need this now that we are using the DL container?
+-ARG CACHEBUST=1
+ ARG BRANCH_NAME
+-
+-RUN git clone https://github.com/aws-samples/mask-rcnn-tensorflow -b $BRANCH_NAME
+-
++RUN git clone https://github.com/aws-samples/mask-rcnn-tensorflow.git -b $BRANCH_NAME
+ RUN chmod -R +w /mask-rcnn-tensorflow
+ RUN pip install --ignore-installed -e /mask-rcnn-tensorflow/
+diff --git a/MaskRCNN/train.py b/MaskRCNN/train.py
+index 624b7d3..051070d 100755
+--- a/MaskRCNN/train.py
++++ b/MaskRCNN/train.py
+@@ -15,6 +15,7 @@ import tensorflow as tf
+ import tqdm
+ import time
+ import subprocess
++import sys,signal
+ 
+ import tensorpack.utils.viz as tpviz
+ from tensorpack import *
+@@ -30,6 +31,9 @@ from performance import ThroughputTracker, humanize_float
+ from model.generalized_rcnn import ResNetFPNModel
+ from tensorpack.utils import fix_rng_seed
+ 
++def handleExit(signum,frame):
++    print("Got signal to exit")
++    sys.exit()
+ 
+ try:
+     import horovod.tensorflow as hvd
+@@ -132,6 +136,7 @@ def log_launch_config(log_full_git_diff):
+ 
+ 
+ if __name__ == '__main__':
++    signal.signal(signal.SIGUSR1,handleExit)
+     start_time = time.time()
+     parser = argparse.ArgumentParser()
+     parser.add_argument('--load', help='load a model for evaluation or training. Can overwrite BACKBONE.WEIGHTS')
